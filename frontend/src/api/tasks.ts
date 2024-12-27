@@ -74,7 +74,7 @@ export interface UpdateTaskRequest {
   description?: string;
   isChecked: boolean;
   dateCreated: Date;
-  assignee?: string;
+  assignee?: User;
 }
 
 /**
