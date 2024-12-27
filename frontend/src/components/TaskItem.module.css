@@ -39,6 +39,7 @@
 
 .title:hover {
   text-decoration: underline; /* Apply underline on hover */
+  color: inherit;
 }
 
 .description {
