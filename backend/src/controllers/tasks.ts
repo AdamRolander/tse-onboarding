@@ -3,7 +3,7 @@ import TaskModel from "src/models/task";
 
 export const getAllTasks: RequestHandler = async (req, res, next) => {
   try {
-    const task = await TaskModel.find({}).sort({ dateCreated: -1 });
+    const task = await TaskModel.find({}).sort({ dateCreated: -1 }).populate("assignee");
 
     res.status(200).json(task);
   } catch (error) {

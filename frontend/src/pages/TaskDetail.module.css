@@ -1,0 +1,42 @@
+.container {
+  width: 900px;
+  padding-bottom: 48px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topButton {
+  margin-top: 4rem;
+}
+
+.description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-secondary);
+}
+
+.field {
+  color: var(--color-text-primary);
+  font-weight: bold;
+}
+
+.value {
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 24px;
+  align-items: baseline;
+  flex-wrap: nowrap;
+}

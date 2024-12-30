@@ -1,10 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createTask } from "src/api/tasks";
+import { createTask, updateTask } from "src/api/tasks";
 import { TaskForm } from "src/components/TaskForm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { CreateTaskRequest, Task } from "src/api/tasks";
+import type { CreateTaskRequest, Task, UpdateTaskRequest } from "src/api/tasks";
 import type { TaskFormProps } from "src/components/TaskForm";
 
 const TITLE_INPUT_ID = "task-title-input";
@@ -35,6 +35,7 @@ vi.mock("src/api/tasks", () => ({
    * See https://vitest.dev/guide/mocking#functions for more info about mock functions.
    */
   createTask: vi.fn((_params: CreateTaskRequest) => Promise.resolve({ success: true })),
+  updateTask: vi.fn((_params: UpdateTaskRequest) => Promise.resolve({ success: true })),
 }));
 
 /**
@@ -45,7 +46,7 @@ const mockTask: Task = {
   title: "My task",
   description: "Very important",
   isChecked: false,
-  dateCreated: new Date(),
+  dateCreated: new Date("2024-12-30T00:04:06.391Z"),
 };
 
 /**
@@ -121,22 +122,27 @@ describe("TaskForm", () => {
   });
 
   it("calls submit handler with edited fields", async () => {
-    // sometimes a test needs to be asynchronous, for example if we need to wait
-    // for component state updates
     mountComponent({
       mode: "edit",
       task: mockTask,
     });
+
     fireEvent.change(screen.getByTestId(TITLE_INPUT_ID), { target: { value: "Updated title" } });
     fireEvent.change(screen.getByTestId(DESCRIPTION_INPUT_ID), {
       target: { value: "Updated description" },
     });
+
     const saveButton = screen.getByTestId(SAVE_BUTTON_ID);
     fireEvent.click(saveButton);
-    expect(createTask).toHaveBeenCalledTimes(1);
-    expect(createTask).toHaveBeenCalledWith({
+
+    expect(updateTask).toHaveBeenCalledTimes(1); // Expect the correct number of calls
+    expect(updateTask).toHaveBeenCalledWith({
+      _id: "task123",
       title: "Updated title",
+      dateCreated: new Date("2024-12-30T00:04:06.391Z"),
       description: "Updated description",
+      isChecked: false, // Ensure this is passed correctly
+      assignee: undefined, // Handle the assignee field as undefined or a string
     });
     await waitFor(() => {
       // If the test ends before all state updates and rerenders occur, we'll

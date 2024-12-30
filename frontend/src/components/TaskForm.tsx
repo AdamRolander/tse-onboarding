@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { createTask } from "src/api/tasks";
+import { useEffect, useState } from "react";
+import { createTask, updateTask } from "src/api/tasks";
+import { getUser } from "src/api/users";
 import { Button, TextField } from "src/components";
 import styles from "src/components/TaskForm.module.css";
 
 import type { Task } from "src/api/tasks";
+import type { User } from "src/api/users";
 
 export interface TaskFormProps {
   mode: "create" | "edit";
@@ -40,53 +42,100 @@ interface TaskFormErrors {
 export function TaskForm({ mode, task, onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState<string>(task?.title || "");
   const [description, setDescription] = useState<string>(task?.description || "");
+  const [id, setID] = useState<string>(task?.assignee?._id || ""); // store as string initially
+  const [assignee, setAssignee] = useState<User | undefined>(task?.assignee || undefined); // state to store the User object
   const [isLoading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<TaskFormErrors>({});
 
-  const handleSubmit = () => {
-    // first, do any validation that we can on the frontend
+  // Fetch user by ID when the ID changes
+  useEffect(() => {
+    if (!id) {
+      setAssignee(undefined); // Clear assignee if ID is empty
+      return;
+    }
+
+    let isMounted = true; // flag to track if component is still mounted
+
+    getUser(id)
+      .then((result) => {
+        if (isMounted) {
+          // Only update state if the component is mounted
+          if (result.success) {
+            setAssignee(result.data);
+          } else {
+            setAssignee(undefined);
+          }
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.error("Failed to fetch user:", err);
+          setAssignee(undefined);
+        }
+      });
+
+    return () => {
+      isMounted = false; // Cleanup on component unmount
+    };
+  }, [id]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrors({});
+
     if (title.length === 0) {
       setErrors({ title: true });
       return;
     }
+
     setLoading(true);
-    createTask({ title, description })
-      .then((result) => {
+
+    try {
+      const taskData = {
+        title,
+        description,
+        assignee: assignee ? assignee._id : undefined,
+      };
+
+      if (mode === "create") {
+        const result = await createTask(taskData);
         if (result.success) {
-          // clear the form
           setTitle("");
           setDescription("");
-          // only call onSubmit if it's NOT undefined
+          setID("");
+          setAssignee(undefined);
           if (onSubmit) onSubmit(result.data);
         } else {
-          // You should always clearly inform the user when something goes wrong.
-          // In this case, we're just doing an `alert()` for brevity, but you'd
-          // generally want to show some kind of error state or notification
-          // within your UI. If the problem is with the user's input, then use
-          // the error states of your smaller components (like the `TextField`s).
-          // If the problem is something we don't really control, such as network
-          // issues or an unexpected exception on the server side, then use a
-          // banner, modal, popup, or similar.
           alert(result.error);
         }
-        setLoading(false);
-      })
-      .catch((reason) => alert(reason));
+      } else if (mode === "edit") {
+        const result = await updateTask({
+          ...taskData,
+          _id: task!._id,
+          isChecked: task!.isChecked,
+          dateCreated: task!.dateCreated,
+        });
+        if (result.success) {
+          setID("");
+          setAssignee(undefined);
+          if (onSubmit) onSubmit(result.data);
+        } else {
+          alert(result.error);
+        }
+      }
+    } catch (error) {
+      alert(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formTitle = mode === "create" ? "New task" : "Edit task";
 
   return (
     <form className={styles.form}>
-      {/* we could just use a `<div>` element because we don't need the special
-      functionality that browsers give to `<form>` elements, but using `<form>`
-      is better for accessibility because it's more accurate for this purpose--
-      we are making a form, so we should use `<form>` */}
       <span className={styles.formTitle}>{formTitle}</span>
       <div className={styles.formRow}>
-        {/* `data-testid` is used by React Testing Library--see the tests in
-        `TaskForm.test.tsx` */}
         <TextField
           className={styles.textField}
           data-testid="task-title-input"
@@ -102,8 +151,14 @@ export function TaskForm({ mode, task, onSubmit }: TaskFormProps) {
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
-        {/* set `type="primary"` on the button so the browser doesn't try to
-        handle it specially (because it's inside a `<form>`) */}
+        <TextField
+          className={`${styles.textField} ${styles.stretch}`}
+          data-testid="id-input"
+          label="Assignee ID (optional)"
+          value={id}
+          onChange={(event) => setID(event.target.value)}
+        />
+        {assignee && <div className={styles.assigneePreview}>{assignee.name}</div>}
         <Button
           kind="primary"
           type="button"
