@@ -1,7 +1,7 @@
 import { get, handleAPIError, post, put } from "src/api/requests";
-import { User } from "src/api/users";
 
 import type { APIResult } from "src/api/requests";
+import type { User } from "src/api/users";
 
 /**
  * Defines the "shape" of a Task object (what fields are present and their types) for
@@ -74,7 +74,7 @@ export interface UpdateTaskRequest {
   description?: string;
   isChecked: boolean;
   dateCreated: Date;
-  assignee?: User;
+  assignee?: string;
 }
 
 /**
@@ -119,7 +119,8 @@ export async function getAllTasks(): Promise<APIResult<Task[]>> {
 
 export async function updateTask(task: UpdateTaskRequest): Promise<APIResult<Task>> {
   try {
-    const response = await put(`/api/task/${task._id}`, task);
+    const newTask = { ...task, assignee: task.assignee };
+    const response = await put(`/api/task/${task._id}`, newTask);
     const json = (await response.json()) as TaskJSON;
     return { success: true, data: parseTask(json) };
   } catch (error) {

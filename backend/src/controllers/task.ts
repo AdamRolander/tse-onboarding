@@ -3,6 +3,7 @@
  */
 
 import { RequestHandler } from "express";
+import mongoose from "mongoose";
 import createHttpError from "http-errors";
 import { validationResult } from "express-validator";
 import TaskModel from "src/models/task";
@@ -91,16 +92,24 @@ export const updateTask: RequestHandler = async (req, res, next) => {
   try {
     validationErrorParser(errors);
 
-    if (req.body._id != req.params.id) {
-      res.status(400);
+    // Check if assignee is a valid ObjectId
+    if (req.body.assignee && !mongoose.Types.ObjectId.isValid(req.body.assignee)) {
+      res.status(400).json({ error: "Invalid assignee ID." });
+      return;
     }
 
-    const result = await TaskModel.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    }).populate("assignee");
+    // Update logic
+    const result = await TaskModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...req.body, // Spread operator to include the new assignee if present
+      },
+      { new: true },
+    ).populate("assignee");
 
-    if (result === null) {
-      res.status(404);
+    if (!result) {
+      res.status(404).json({ error: "Task not found." });
+      return;
     }
 
     res.status(200).json(result);

@@ -97,7 +97,7 @@ export function TaskDetail() {
             <p className={styles.description}>{task.description || "(No description)"}</p>
             <div className={styles.fieldRow}>
               <p className={styles.field}>Assignee</p>
-              <p className={styles.value}>{task.assignee ? task.assignee._id : "Unassigned"}</p>
+              <p className={styles.value}>{task.assignee ? task.assignee.name : "Unassigned"}</p>
             </div>
             <div className={styles.fieldRow}>
               <p className={styles.field}>Status</p>
